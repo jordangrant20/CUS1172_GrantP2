@@ -254,11 +254,4 @@ window.onload = function() {
 
     // initial render
     render();
-
-    // keyboard shortcut: focus input with "n"
-    window.addEventListener('keydown', e=>{
-        if(e.key === 'n' && !e.metaKey && !e.ctrlKey && !e.altKey){
-            taskNameInput.focus();
-        }
-    });
 };
