@@ -1,14 +1,15 @@
-window.onload = function() {
+document.addEventListener('DOMContentLoaded', function() {
     // Simple in-memory model with localStorage persistence
-    const form = document.getElementById('taskForm');
-    const taskNameInput = document.getElementById('taskName');
-    const activeList = document.getElementById('activeList');
-    const completedList = document.getElementById('completedList');
-    const completedCount = document.getElementById('completedCount');
-    const toggleCompleted = document.getElementById('toggleCompleted');
-    const completedPanel = document.getElementById('completedPanel');
-    const clearCompleted = document.getElementById('clearCompleted');
-    const clearAllActive = document.getElementById('clearAllActive');
+   // add priority status to tasks to help sort them
+   const form = document.querySelector('#taskForm');
+   const taskNameInput = document.querySelector('#taskName');
+   const activeList = document.querySelector('#activeList');
+   const completedList = document.querySelector('#completedList');
+   const completedCount = document.querySelector('#completedCount');
+   const toggleCompleted = document.querySelector('#toggleCompleted');
+   const completedPanel = document.querySelector('#completedPanel');
+   const clearCompleted = document.querySelector('#clearCompleted');
+   const clearAllActive = document.querySelector('#clearAllActive');
 
     // make Enter on the text field submit the form
     if (taskNameInput) {
@@ -21,12 +22,14 @@ window.onload = function() {
         });
 
         // give the user a sensible starting point
-        try { taskNameInput.focus(); } catch (e) { /* ignore */ }
+        try { taskNameInput.focus(); } 
+        catch (e) { /* ignore */ }
     }
 
     let tasks = []; // {id, title, subtasks: [{id,text,done}], done}
 
-    function uid(prefix='id'){return prefix+Math.random().toString(36).slice(2,9)}
+    function uid(prefix='id'){
+        return prefix+Math.random().toString(36).slice(2,9)}
 
     // load persisted tasks (if any)
     try {
@@ -254,4 +257,4 @@ window.onload = function() {
 
     // initial render
     render();
-};
+});
