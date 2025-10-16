@@ -9,9 +9,71 @@
         const completedPanel = document.getElementById('completedPanel');
         const clearCompleted = document.getElementById('clearCompleted');
         const clearAllActive = document.getElementById('clearAllActive');
+        // make Enter on the text field submit the form (useful if the input isn't actually inside the <form>)
+        if (taskNameInput) {
+            taskNameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                    e.preventDefault();
+                    if (typeof form.requestSubmit === 'function') form.requestSubmit();
+                    else form.submit();
+                }
+            });
 
+            // give the user a sensible starting point
+            try { taskNameInput.focus(); } catch (e) { /* ignore */ }
+        }
         let tasks = []; // {id, title, subtasks: [{id,text,done}], done}
+        // normalize any loaded tasks to ensure subtasks array exists
+        tasks = tasks.map(t => ({
+            id: t.id || uid('t'),
+            title: t.title || '',
+            subtasks: Array.isArray(t.subtasks) ? t.subtasks.map(s => ({
+                id: s.id || uid('s'),
+                text: s.text || '',
+                done: !!s.done
+            })) : [],
+            done: !!t.done
+        }));
 
+        // Add a subtask to a task (returns the new subtask id or null)
+        function addSubtask(taskId, text) {
+            const trimmed = (text || '').trim();
+            if (!trimmed) return null;
+            const task = tasks.find(x => x.id === taskId);
+            if (!task) return null;
+            const sid = uid('s');
+            task.subtasks.push({ id: sid, text: trimmed, done: false });
+            try { localStorage.setItem('tm_tasks', JSON.stringify(tasks)); } catch (e) {}
+            render();
+            return sid;
+        }
+
+        // Toggle a subtask's done state programmatically (true/false)
+        // returns true if successful
+        function toggleSubtask(taskId, subtaskId, done) {
+            const task = tasks.find(x => x.id === taskId);
+            if (!task) return false;
+            const s = task.subtasks.find(x => x.id === subtaskId);
+            if (!s) return false;
+            s.done = !!done;
+            try { localStorage.setItem('tm_tasks', JSON.stringify(tasks)); } catch (e) {}
+            render();
+            return true;
+        }
+
+        // Remove a subtask programmatically (returns true if removed)
+        function removeSubtask(taskId, subtaskId) {
+            const task = tasks.find(x => x.id === taskId);
+            if (!task) return false;
+            const before = task.subtasks.length;
+            task.subtasks = task.subtasks.filter(x => x.id !== subtaskId);
+            const removed = task.subtasks.length !== before;
+            if (removed) {
+                try { localStorage.setItem('tm_tasks', JSON.stringify(tasks)); } catch (e) {}
+                render();
+            }
+            return removed;
+        }
         function uid(prefix='id'){return prefix+Math.random().toString(36).slice(2,9)}
         // load persisted tasks (if any)
         try {
