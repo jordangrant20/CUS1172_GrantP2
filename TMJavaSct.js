@@ -1,6 +1,87 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Simple in-memory model with localStorage persistence
    // add priority status to tasks to help sort them
+   // make sure array operations is visible in code
+// priority dropdown and sorting (low, medium, high). Keeps highest priority at top.
+(function(){
+    function priorityWeight(p){
+        if(p === 'high') return 3;
+        if(p === 'medium') return 2;
+        return 1; // low or unknown
+    }
+
+    function sortTasks(){
+        // sort in-place: highest priority first; stable sort keeps relative order within same priority
+        if (typeof tasks === 'undefined' || !Array.isArray(tasks)) return;
+        tasks.sort((a,b) => priorityWeight(b.priority || 'medium') - priorityWeight(a.priority || 'medium'));
+    }
+
+    // Insert the priority select into the form after DOM elements are created.
+    setTimeout(() => {
+        const taskNameInput = document.querySelector('#taskName');
+        const form = document.querySelector('#taskForm');
+        if (!form || !taskNameInput) return;
+        if (document.querySelector('#taskPriority')) return; // don't duplicate
+
+        const sel = document.createElement('select');
+        sel.id = 'taskPriority';
+        sel.title = 'Priority';
+        sel.style.marginLeft = '8px';
+
+        const opts = [
+            {v: 'low', t: 'Low'},
+            {v: 'medium', t: 'Medium'},
+            {v: 'high', t: 'High'}
+        ];
+        opts.forEach(o => {
+            const option = document.createElement('option');
+            option.value = o.v;
+            option.textContent = o.t;
+            if (o.v === 'medium') option.selected = true;
+            sel.appendChild(option);
+        });
+
+        // Place the select right after the task name input
+        taskNameInput.insertAdjacentElement('afterend', sel);
+    }, 0);
+
+    // Ensure loaded tasks have a priority and then sort & render/save once.
+    setTimeout(() => {
+        if (typeof tasks === 'undefined') return;
+        let changed = false;
+        tasks = tasks.map(t => {
+            if (!t.priority) { t.priority = 'medium'; changed = true; }
+            return t;
+        });
+        sortTasks();
+        if (changed) try { saveToStorage(); } catch (e) {}
+        try { render(); } catch (e) {}
+    }, 0);
+
+    // After the built-in submit handler creates the new task, set its priority and re-sort.
+    setTimeout(() => {
+        const form = document.querySelector('#taskForm');
+        if (!form) return;
+        // add listener after existing one so it runs afterward
+        form.addEventListener('submit', () => {
+            // allow the original submit handler to run first (it creates the task)
+            setTimeout(() => {
+                if (!Array.isArray(tasks) || tasks.length === 0) return;
+                const newest = tasks[0]; // form handler inserts newest at front
+                if (!newest) return;
+                const sel = document.querySelector('#taskPriority');
+                const val = sel ? sel.value : 'medium';
+                if (newest.priority !== val) {
+                    newest.priority = val;
+                    sortTasks();
+                    try { saveToStorage(); } catch (e) {}
+                    try { render(); } catch (e) {}
+                }
+            }, 0);
+        }, false);
+    }, 0);
+})();
+   
    const form = document.querySelector('#taskForm');
    const taskNameInput = document.querySelector('#taskName');
    const activeList = document.querySelector('#activeList');
