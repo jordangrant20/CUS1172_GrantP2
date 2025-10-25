@@ -3,6 +3,93 @@ document.addEventListener('DOMContentLoaded', function() {
    // add priority status to tasks to help sort them
    // make sure array operations is visible in code
 // priority dropdown and sorting (low, medium, high). Keeps highest priority at top.
+// add per-task priority dropdown and visual "!" markers; integrate with existing tasks/render/save
+(function(){
+    function weight(p){
+        if (p === 'high') return 3;
+        if (p === 'medium') return 2;
+        return 1;
+    }
+
+    function attachPriorityUI(){
+        const lists = [document.querySelector('#activeList'), document.querySelector('#completedList')];
+        lists.forEach(list => {
+            if (!list) return;
+            list.querySelectorAll('.task').forEach(wrap => {
+                const id = wrap.dataset.id;
+                const task = Array.isArray(tasks) ? tasks.find(t => t.id === id) : null;
+
+                // add select if missing
+                if (!wrap.querySelector('.task-priority')) {
+                    const sel = document.createElement('select');
+                    sel.className = 'task-priority';
+                    sel.title = 'Priority';
+                    sel.style.marginLeft = '8px';
+                    sel.style.minWidth = '72px';
+
+                    const opts = [
+                        {v: 'low', t: 'Low'},
+                        {v: 'medium', t: 'Medium'},
+                        {v: 'high', t: 'High'}
+                    ];
+                    const cur = task && task.priority ? task.priority : 'medium';
+                    opts.forEach(o => {
+                        const option = document.createElement('option');
+                        option.value = o.v;
+                        option.textContent = o.t;
+                        if (o.v === cur) option.selected = true;
+                        sel.appendChild(option);
+                    });
+
+                    sel.addEventListener('change', () => {
+                        if (!task) return;
+                        task.priority = sel.value;
+                        // sort tasks by priority (highest first) then keep relative order otherwise
+                        tasks.sort((a, b) => weight(b.priority || 'medium') - weight(a.priority || 'medium'));
+                        try { saveToStorage(); } catch (e) {}
+                        try { render(); } catch (e) {}
+                    });
+
+                    // place the select into the title-row, before meta if present
+                    const titleRow = wrap.querySelector('.title-row') || wrap;
+                    const meta = titleRow ? titleRow.querySelector('.meta') : null;
+                    if (meta) titleRow.insertBefore(sel, meta);
+                    else titleRow.appendChild(sel);
+                }
+
+                // add/update exclamation marker next to title
+                const h3 = wrap.querySelector('h3');
+                if (h3) {
+                    let span = wrap.querySelector('.priority-bang');
+                    if (!span) {
+                        span = document.createElement('span');
+                        span.className = 'priority-bang';
+                        span.style.color = 'crimson';
+                        span.style.marginLeft = '8px';
+                        h3.appendChild(span);
+                    }
+                    const p = task && task.priority ? task.priority : 'medium';
+                    span.textContent = p === 'high' ? '!!!' : p === 'medium' ? '!!' : '';
+                }
+            });
+        });
+    }
+
+    // Wait until the main render function exists, then wrap it so our UI is applied after each render.
+    (function waitForRender(){
+        if (typeof render !== 'function') {
+            setTimeout(waitForRender, 30);
+            return;
+        }
+        const originalRender = render;
+        render = function(){
+            originalRender();
+            attachPriorityUI();
+        };
+        // run once now
+        try { attachPriorityUI(); } catch (e) {}
+    })();
+})();
 (function(){
     function priorityWeight(p){
         if(p === 'high') return 3;
@@ -339,3 +426,4 @@ document.addEventListener('DOMContentLoaded', function() {
     // initial render
     render();
 });
+// Sources: ww3schools.com (https://www.w3schools.com/howto/howto_js_collapsible.asp), ww3schools.com javascript examples
